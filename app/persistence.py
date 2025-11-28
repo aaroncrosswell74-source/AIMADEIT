@@ -1,0 +1,146 @@
+# app/persistence.py
+import sqlite3
+import json
+import uuid
+import asyncio
+import os
+from datetime import datetime
+from contextlib import contextmanager
+from typing import Any, Dict, List, Optional
+from app.logger import logger
+
+ROOT = os.getcwd()
+DB_PATH_DEFAULT = os.environ.get("SOVEREIGN_DB", os.path.join(ROOT, "sovereign_kingdom.db"))
+MIGRATIONS_DIR = os.path.join(ROOT, "migrations")
+
+class SovereignSQLite:
+    def __init__(self, db_path: str = DB_PATH_DEFAULT):
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path) if os.path.dirname(self.db_path) else ".", exist_ok=True)
+        self._init_and_migrate()
+
+    def _connect(self):
+        c = sqlite3.connect(self.db_path, check_same_thread=False)
+        c.row_factory = sqlite3.Row
+        c.execute("PRAGMA foreign_keys = ON;")
+        return c
+
+    def _init_and_migrate(self):
+        logger.info("[SQLite] Ensuring DB and applying migrations")
+        with self._sync_connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    applied_at TEXT NOT NULL
+                )
+            """)
+        self._apply_migrations()
+
+    def _apply_migrations(self):
+        applied = set()
+        with self._sync_connection() as conn:
+            rows = conn.execute("SELECT name FROM migrations").fetchall()
+            applied = {r["name"] for r in rows}
+        
+        if not os.path.isdir(MIGRATIONS_DIR):
+            logger.info(f"[SQLite] No migrations dir found at {MIGRATIONS_DIR}")
+            return
+            
+        files = sorted([f for f in os.listdir(MIGRATIONS_DIR) if f.endswith(".sql")])
+        for fname in files:
+            if fname in applied:
+                continue
+            path = os.path.join(MIGRATIONS_DIR, fname)
+            logger.info(f"[SQLite] Applying migration {fname}")
+            sql = open(path, "r", encoding="utf-8").read()
+            with self._sync_connection() as conn:
+                conn.executescript(sql)
+                conn.execute("INSERT INTO migrations (id, name, applied_at) VALUES (?, ?, ?)",
+                             (str(uuid.uuid4()), fname, datetime.utcnow().isoformat()))
+        logger.info("[SQLite] Migrations complete")
+
+    @contextmanager
+    def _sync_connection(self):
+        conn = self._connect()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    async def fetchrow(self, query: str, *params) -> Optional[Dict[str, Any]]:
+        def _fn():
+            with self._sync_connection() as conn:
+                r = conn.execute(query, params).fetchone()
+                return dict(r) if r else None
+        return await asyncio.get_event_loop().run_in_executor(None, _fn)
+
+    async def fetch(self, query: str, *params) -> List[Dict[str, Any]]:
+        def _fn():
+            with self._sync_connection() as conn:
+                rows = conn.execute(query, params).fetchall()
+                return [dict(r) for r in rows]
+        return await asyncio.get_event_loop().run_in_executor(None, _fn)
+
+    async def execute(self, query: str, *params) -> None:
+        def _fn():
+            with self._sync_connection() as conn:
+                conn.execute(query, params)
+        await asyncio.get_event_loop().run_in_executor(None, _fn)
+
+    async def fetchval(self, query: str, *params) -> Any:
+        def _fn():
+            with self._sync_connection() as conn:
+                r = conn.execute(query, params).fetchone()
+                return r[0] if r else None
+        return await asyncio.get_event_loop().run_in_executor(None, _fn)
+
+    def ensure_seed(self):
+        with self._sync_connection() as conn:
+            c = conn.execute("SELECT COUNT(1) as c FROM nodes").fetchone()
+            if c and c["c"]>0:
+                return
+            logger.info("[SQLite] Seeding ARKWELL users and nodes")
+            # seed users
+            conn.execute("INSERT OR IGNORE INTO users (id, email, handle) VALUES (?, ?, ?)",
+                         ("MOCK-USER-12345","operative@arkwell.com","ArkwellOperative"))
+            conn.execute("INSERT OR IGNORE INTO users (id, email, handle) VALUES (?, ?, ?)",
+                         ("ADMIN.AARON","aaron@arkwell.com","DirectorAaron"))
+            # seed nodes
+            def ins(code,label,tier,policy):
+                conn.execute("INSERT INTO nodes (id,code,label,tier,policy) VALUES (?,?,?,?,?)",
+                             (str(uuid.uuid4()), code, label, tier, json.dumps(policy)))
+            ins("RECRUIT","Arkwell Recruit",0,{"open":True})
+            ins("OPERATIVE","Field Operative",1,{"payment":True,"multisig":0})
+            ins("SPECOPS","Special Operations",2,{"payment":True,"multisig":1})
+            ins("DIRECTOR","Command Director",3,{"payment":True,"multisig":0})
+            # grant RECRUIT to mock user
+            conn.execute("""
+                INSERT INTO user_node_access (id,user_id,node_id,status,source,unlocked)
+                VALUES (?, ?, (SELECT id FROM nodes WHERE code='RECRUIT'), 'approved', 'system', 1)
+            """, (str(uuid.uuid4()), "MOCK-USER-12345"))
+
+_sqlite_instance: Optional[SovereignSQLite] = None
+
+async def setup_db_pool():
+    global _sqlite_instance
+    if _sqlite_instance is None:
+        _sqlite_instance = SovereignSQLite()
+        _sqlite_instance.ensure_seed()
+        logger.info(f"[SQLite] Initialized { _sqlite_instance.db_path }")
+    return _sqlite_instance
+
+def get_pool():
+    global _sqlite_instance
+    if not _sqlite_instance:
+        raise RuntimeError("Database not initialized. Call setup_db_pool() first.")
+    return _sqlite_instance
+
+async def shutdown_db_pool():
+    global _sqlite_instance
+    _sqlite_instance = None
+    logger.info("[SQLite] Shutdown")
