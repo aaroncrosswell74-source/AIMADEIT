@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # loads DATABASE_URL from .env
+
 # -*- coding: utf-8 -*-
 """Flask Portal Server (PostgreSQL Integration)
 
