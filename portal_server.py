@@ -4,7 +4,7 @@ import time
 # NOTE: This is the correct way to import the function from the engine file.
 from trideva_engine import execute_canonical_ritual
 
-# --- Setup ---\
+# --- Setup ---
 # NOTE: You MUST have your flask template in a subfolder named 'templates'
 app = Flask(__name__)
 CORS(app)  # Enable CORS for development environment
@@ -19,7 +19,6 @@ print("[INIT] Mock User Tier Store initialized (in-memory dictionary).")
 CANONICAL_AUTH_KEY = "trideva_sacred_key_555"
 # ----------------------------------------------
 
-
 # --- Routes ---
 
 @app.route('/')
@@ -27,7 +26,6 @@ def home():
     """Renders the HTML template (client portal) when the user navigates to the root URL (/)."""
     # The HTML file must be in a subfolder named 'templates'
     return render_template('trideva_engine_portal_flask.html')
-
 
 @app.route('/api/health')
 def health_check():
@@ -37,7 +35,6 @@ def health_check():
         "engine_version": "V3.0.0",  # Updated to reflect canonical engine
         "timestamp": time.time()
     })
-    
 
 @app.route('/api/user/tier/<user_id>', methods=['GET'])
 def get_user_tier(user_id):
@@ -49,7 +46,6 @@ def get_user_tier(user_id):
     
     # Tier 0 is the default un-initiated state.
     return jsonify({"success": True, "ritualTier": ritual_tier, "userId": user_id})
-
 
 @app.route('/api/discord/grant_tier', methods=['POST'])
 def grant_tier_from_discord():
@@ -72,7 +68,6 @@ def grant_tier_from_discord():
         return jsonify({"success": True, "ritualTier": MOCK_USER_TIERS[user_id]})
     
     return jsonify({"success": False, "message": "Missing user ID."}), 400
-
 
 @app.route('/api/ritual', methods=['POST'])
 def run_ritual_from_web():
@@ -125,7 +120,6 @@ def run_ritual_from_web():
         app.logger.error(f"Ritual execution failed: {e}")
         return jsonify({"success": False, "message": f"Server Error during ritual execution: {str(e)}"}), 500
 
-
 # --- MOCK PAYMENT ENDPOINTS (For client UI button actions) ---
 
 @app.route('/api/stripe/create-checkout-session', methods=['POST'])
@@ -159,7 +153,6 @@ def create_onramp_session():
         "mock_grant": True,
         "userId": user_id
     })
-
 
 if __name__ == '__main__':
     # Flask needs to run in a sub-thread or separate process for discord.py to work correctly.
