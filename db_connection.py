@@ -1,32 +1,32 @@
 import os
 import logging
-from psycopg import connect
-from psycopg_pool import ConnectionPool
 
 logger = logging.getLogger(__name__)
 
-RAW_URL = os.getenv("DATABASE_URL")
-if not RAW_URL:
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL missing from environment.")
 
-# Force SSL mode cleanly, regardless of how Render encodes it
-if "sslmode" not in RAW_URL:
-    DATABASE_URL = RAW_URL + "?sslmode=require"
-else:
-    DATABASE_URL = RAW_URL
+# Mask password for logging
+try:
+    user_pass, rest = DATABASE_URL.split("@", 1)
+    masked = user_pass.split(":", 1)[0] + ":***@" + rest
+except Exception:
+    masked = "***"
 
-logger.info(f"[DB] Final connection URL: {DATABASE_URL}")
+logger.info(f"[DB] Using URL: {masked}")
 
-# Create pool with sslmode forced
-pool = ConnectionPool(
-    conninfo=DATABASE_URL,
-    min_size=1,
-    max_size=5,
-    timeout=10
-)
+# -------------------------------------------------
+# TEMPORARY FIX: DISABLE DATABASE CONNECTION POOL
+# -------------------------------------------------
+
+connection_pool = None
+logger.warning("[DB] Connection pool DISABLED for boot testing.")
 
 def get_db_connection():
-    return pool.getconn()
+    """TEMPORARY: DB disabled so the app can boot safely."""
+    raise RuntimeError("Database connection temporarily disabled for boot testing.")
 
 def return_db_connection(conn):
-    pool.putconn(conn)
+    """TEMPORARILY DISABLED: No-op."""
+    pass
