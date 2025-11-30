@@ -1,14 +1,12 @@
 import logging
+import os
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 
-# Only import the functions that exist in db_connection.py
 from db_connection import (
     get_db_connection,
     return_db_connection
 )
-
-import os
 
 app = Flask(__name__)
 CORS(app)
@@ -17,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("portal_server")
 
 # -------------------------------------------------------
-# BEFORE REQUEST — grab DB connection
+# BEFORE REQUEST — get DB connection
 # -------------------------------------------------------
 @app.before_request
 def before_request():
@@ -60,7 +58,8 @@ def health():
         return jsonify({"database": "error", "details": str(e)}), 500
 
 # -------------------------------------------------------
-# ENTRY
+# ENTRY (Render uses this)
 # -------------------------------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+    port = int(os.getenv("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
