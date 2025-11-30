@@ -1,0 +1,12 @@
+{
+  "mission_id": "arkwell_backup_20251128T121416Z",
+  "timestamp_utc": "20251128T121416Z",
+  "backup_file": "arkwell_vaults\\arkwell_backup_20251128T121416Z.enc",
+  "key_file": "arkwell_vaults\\arkwell_backup_20251128T121416Z.key",
+  "manifest_file": "arkwell_vaults\\arkwell_backup_20251128T121416Z.manifest.json",
+  "sha256_fingerprint": "c431e90a0105c927122bb97e75db39b40615222a3316de5706449f35ab875e61",
+  "size_bytes": 100,
+  "encryption_cipher": "AES-256-GCM",
+  "status": "MISSION_SUCCESS",
+  "notes": "ARKWELL PROTOCOL: Keys stored separately from data"
+}

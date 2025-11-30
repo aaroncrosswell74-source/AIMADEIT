@@ -1,0 +1,68 @@
+-- migrations/0001_init.sql
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS migrations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  applied_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT,
+  handle TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS nodes (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  label TEXT NOT NULL,
+  tier INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  policy TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_node_access (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  granted_by TEXT,
+  expires_at TIMESTAMP,
+  meta TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  unlocked INTEGER DEFAULT 0,
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  FOREIGN KEY(node_id) REFERENCES nodes(id)
+);
+
+CREATE TABLE IF NOT EXISTS user_node_approvals (
+  id TEXT PRIMARY KEY,
+  access_id TEXT NOT NULL,
+  approver_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  comment TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(access_id) REFERENCES user_node_access(id),
+  FOREIGN KEY(approver_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS payment_proofs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  reference TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  meta TEXT,
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  FOREIGN KEY(node_id) REFERENCES nodes(id)
+);
