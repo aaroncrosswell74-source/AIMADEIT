@@ -1,57 +1,66 @@
-import os
 import logging
-from flask import Flask, jsonify, request, g
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 
-# Updated import — no setup_db_pool
+# Only import the functions that exist in db_connection.py
 from db_connection import (
     get_db_connection,
-    return_db_connection,
-    shutdown_db_pool,
+    return_db_connection
 )
 
-from trideva_engine import TridevaEngine
-from routes import register_routes
-
-logger = logging.getLogger("portal_server")
-logging.basicConfig(level=logging.INFO)
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize the Trideva Engine once
-engine = TridevaEngine()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("portal_server")
 
-
+# -------------------------------------------------------
+# BEFORE REQUEST — grab DB connection
+# -------------------------------------------------------
 @app.before_request
 def before_request():
-    """Open DB connection for the request."""
     try:
         g.db_conn = get_db_connection()
     except Exception as e:
-        logger.error(f"[DB] Failed to acquire connection from pool: {e}")
-        return jsonify({"error": "Database unavailable"}), 500
+        logger.error(f"[DB] connection error: {e}")
+        return jsonify({"error": "database_unavailable"}), 500
 
-
+# -------------------------------------------------------
+# AFTER REQUEST — return connection
+# -------------------------------------------------------
 @app.teardown_request
-def teardown_request(exception=None):
-    """Release DB connection back to the pool."""
+def teardown_request(exception):
     conn = getattr(g, "db_conn", None)
     if conn:
         return_db_connection(conn)
 
+# -------------------------------------------------------
+# ROOT ROUTE
+# -------------------------------------------------------
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({"status": "online", "message": "Sovereign Kingdom running"})
 
-# Register all API routes
-register_routes(app, engine)
+# -------------------------------------------------------
+# HEALTHCHECK
+# -------------------------------------------------------
+@app.route("/health", methods=["GET"])
+def health():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        result = cur.fetchone()
+        return_db_connection(conn)
+        return jsonify({"database": "ok", "result": result}), 200
+    except Exception as e:
+        logger.error(f"[HEALTHCHECK ERROR] {e}")
+        return jsonify({"database": "error", "details": str(e)}), 500
 
-
-@app.route("/")
-def root():
-    return jsonify({"message": "Sovereign Kingdom Portal is live."})
-
-
-# Simplified startup block — no setup_db_pool
+# -------------------------------------------------------
+# ENTRY
+# -------------------------------------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    print(f"[FLASK] Starting Canonical Portal Server on http://localhost:{port}")
-    app.run(debug=True, port=port)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
