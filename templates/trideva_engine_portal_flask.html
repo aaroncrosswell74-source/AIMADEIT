@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trideva Canonical Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a dark, futuristic aesthetic */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d17; /* Deep space blue-black */
+            color: #e0e0f0;
+        }
+        .canonical-card {
+            background-color: #1a1a2e; /* Darker card background */
+            border: 1px solid #3d3d5c;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .canonical-card:hover {
+            box-shadow: 0 10px 40px rgba(70, 70, 150, 0.7);
+        }
+        .ritual-button {
+            background: linear-gradient(135deg, #6b21a8, #4f46e5);
+            transition: background 0.3s, transform 0.1s;
+        }
+        .ritual-button:hover {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            transform: translateY(-1px);
+        }
+        .tier-0 {
+            border-left: 5px solid #ef4444; /* Red for restricted */
+        }
+        .tier-1 {
+            border-left: 5px solid #10b981; /* Green for initiated */
+        }
+        .loader {
+            border-top-color: #6b21a8;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8 flex justify-center items-start">
+
+    <div id="app" class="w-full max-w-4xl space-y-8">
+        <!-- Header -->
+        <header class="text-center py-6">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-indigo-400">
+                Trideva Canonical Portal
+            </h1>
+            <p class="text-indigo-300 mt-2 text-lg">Web Gateway to the Engine</p>
+        </header>
+
+        <!-- Main Interface -->
+        <div class="canonical-card p-6 sm:p-8 rounded-xl space-y-6">
+
+            <!-- User ID and Tier Status -->
+            <div class="flex flex-col sm:flex-row justify-between items-center pb-4 border-b border-gray-700">
+                <div>
+                    <label for="userIdInput" class="block text-sm font-medium text-gray-400">Your Canonical User ID:</label>
+                    <input type="text" id="userIdInput" class="mt-1 w-full sm:w-80 p-2 rounded-lg bg-gray-800 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 text-white" value="web_user_101" placeholder="Enter Discord ID or unique ID">
+                </div>
+                <div class="mt-4 sm:mt-0 text-right">
+                    <p class="text-sm font-medium text-gray-400">Current Access Tier:</p>
+                    <p id="ritualTierDisplay" class="text-2xl font-bold text-red-500 transition-colors duration-500">
+                        Tier 0
+                    </p>
+                </div>
+            </div>
+
+            <!-- Initiate Pass Section -->
+            <div id="initiationSection" class="space-y-4">
+                <h2 class="text-xl font-semibold text-indigo-400">Initiate Thoracle Pass (Tier 1)</h2>
+                <p class="text-gray-400">Unlock full ritual capabilities (Phases 1-10) by acquiring a Tier 1 pass via the following methods:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Stripe Button (Fiat) -->
+                    <button onclick="handleInitiation('stripe')" class="p-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors shadow-md">
+                        <span class="font-bold text-lg text-white">💳 FIAT (Stripe/Card)</span>
+                        <span class="block text-sm text-gray-300">Fastest setup, standard payment.</span>
+                    </button>
+                    <!-- Hybrid Button (On-Ramp) -->
+                    <button onclick="handleInitiation('hybrid')" class="p-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors shadow-md">
+                        <span class="font-bold text-lg text-white">⚛️ HYBRID (On-Ramp)</span>
+                        <span class="block text-sm text-gray-300">Fiat-to-Crypto seamless experience.</span>
+                    </button>
+                </div>
+                <p id="initiationMessage" class="text-sm text-center text-yellow-400 hidden">Tier granted! You can now run the full ritual.</p>
+            </div>
+
+            <!-- Ritual Execution Section -->
+            <div class="space-y-4 pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-semibold text-indigo-400">Canonical Ritual Execution</h2>
+                
+                <label for="seedInput" class="block text-sm font-medium text-gray-400">Seed Concept / Sacred Intention:</label>
+                <textarea id="seedInput" rows="3" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 text-white" placeholder="e.g., The convergence of quantum mechanics and ancient mythology"></textarea>
+                
+                <button id="runRitualButton" onclick="runRitual()" class="ritual-button w-full p-3 rounded-lg text-white font-bold text-lg shadow-lg flex items-center justify-center" disabled>
+                    <span id="buttonText">Run Trideva Ritual</span>
+                    <div id="loader" class="loader ease-linear rounded-full border-4 border-t-4 border-gray-700 h-6 w-6 ml-3 hidden"></div>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Ritual Output Area -->
+        <div id="outputArea" class="canonical-card p-6 sm:p-8 rounded-xl hidden space-y-4">
+            <h2 class="text-xl font-semibold text-indigo-400 border-b border-gray-700 pb-2">Ritual Output</h2>
+            
+            <!-- Result Card -->
+            <div id="resultCard" class="p-4 rounded-lg bg-gray-800 tier-0">
+                <p id="cardName" class="text-2xl font-extrabold text-green-400 mb-1"></p>
+                <p id="archetypeId" class="text-sm font-mono text-gray-400"></p>
+                <p id="cyclesCompleted" class="mt-2 text-gray-300"></p>
+            </div>
+
+            <!-- Lore and Logs -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-indigo-300">Canonical Lore Entry</h3>
+                <p id="loreDescription" class="text-gray-400 italic"></p>
+
+                <h3 class="text-lg font-medium text-indigo-300">Ritual Logs</h3>
+                <div id="ritualLogs" class="bg-gray-900 p-4 rounded-lg text-sm text-gray-500 max-h-60 overflow-y-auto font-mono">
+                    Logs will appear here...
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Box -->
+        <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-2xl z-50 transition-transform duration-300 transform translate-x-full" style="min-width: 250px;">
+            <p id="messageText" class="font-semibold"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION (MUST MATCH SERVER) ---
+        const FLASK_SERVER_URL = "http://localhost:5000";
+        // -----------------------------------------
+        
+        // --- GLOBAL STATE ---
+        let currentRitualTier = 0;
+        let currentUserId = document.getElementById('userIdInput').value;
+
+        // --- UTILITY FUNCTIONS ---
+        
+        function showMessage(text, type = 'info') {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            
+            let bgColor = 'bg-gray-800';
+            let textColor = 'text-white';
+
+            if (type === 'error') {
+                bgColor = 'bg-red-600';
+            } else if (type === 'success') {
+                bgColor = 'bg-green-600';
+            } else if (type === 'warning') {
+                bgColor = 'bg-yellow-600';
+            }
+            
+            messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-2xl z-50 transition-transform duration-300 ${bgColor}`;
+            messageText.textContent = text;
+            
+            // Show the box (slide in)
+            messageBox.style.transform = 'translateX(0)';
+            
+            // Hide the box after 5 seconds (slide out)
+            setTimeout(() => {
+                messageBox.style.transform = 'translateX(calc(100% + 1rem))';
+            }, 5000);
+        }
+
+        function setRitualTier(tier) {
+            currentRitualTier = tier;
+            const display = document.getElementById('ritualTierDisplay');
+            const button = document.getElementById('runRitualButton');
+            
+            display.textContent = `Tier ${tier}`;
+            
+            // Update color and button state based on tier
+            display.className = 'text-2xl font-bold transition-colors duration-500';
+            if (tier > 0) {
+                display.classList.add('text-green-400');
+                button.disabled = false;
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('initiationSection').classList.add('hidden');
+                document.getElementById('initiationMessage').classList.remove('hidden');
+                document.getElementById('initiationMessage').textContent = `Tier ${tier} access is live. Run your first ritual!`;
+            } else {
+                display.classList.add('text-red-500');
+                button.disabled = true;
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('initiationSection').classList.remove('hidden');
+            }
+        }
+
+        function toggleLoading(isLoading) {
+            const button = document.getElementById('runRitualButton');
+            const buttonText = document.getElementById('buttonText');
+            const loader = document.getElementById('loader');
+
+            if (isLoading) {
+                button.disabled = true;
+                buttonText.textContent = 'Ritual in Progress...';
+                loader.classList.remove('hidden');
+            } else {
+                setRitualTier(currentRitualTier); // Re-enable if tier is > 0
+                buttonText.textContent = 'Run Trideva Ritual';
+                loader.classList.add('hidden');
+            }
+        }
+
+        // --- API & Core Logic ---
+
+        async function fetchUserTier() {
+            currentUserId = document.getElementById('userIdInput').value.trim();
+            if (!currentUserId) {
+                setRitualTier(0);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${FLASK_SERVER_URL}/api/user/tier/${currentUserId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    setRitualTier(data.ritualTier);
+                } else {
+                    showMessage("Error fetching user tier from server.", 'error');
+                    setRitualTier(0);
+                }
+            } catch (error) {
+                console.error('Network error checking tier:', error);
+                showMessage("Could not connect to Flask server. Is it running?", 'error');
+                setRitualTier(0);
+            }
+        }
+
+        async function handleInitiation(method) {
+            currentUserId = document.getElementById('userIdInput').value.trim();
+            if (!currentUserId || currentUserId === 'anonymous') {
+                showMessage("Please set a unique User ID before initiating the pass.", 'warning');
+                return;
+            }
+
+            let endpoint = '';
+            if (method === 'stripe') {
+                endpoint = '/api/stripe/create-checkout-session';
+            } else if (method === 'hybrid') {
+                endpoint = '/api/hybrid/create-onramp-session';
+            } else {
+                showMessage("Invalid initiation method.", 'error');
+                return;
+            }
+
+            try {
+                // Mock endpoint will grant the tier immediately
+                const response = await fetch(`${FLASK_SERVER_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId })
+                });
+                const data = await response.json();
+
+                if (data.success && data.mock_grant) {
+                    showMessage(`Mock payment successful. Tier 1 granted to ${currentUserId}.`, 'success');
+                    // In a real app, we'd redirect to data.url. Here we just update the tier state.
+                    await fetchUserTier();
+                } else {
+                    showMessage("Initiation failed.", 'error');
+                }
+            } catch (error) {
+                console.error('Initiation network error:', error);
+                showMessage("Network error during initiation attempt.", 'error');
+            }
+        }
+
+        async function runRitual() {
+            const seedConcept = document.getElementById('seedInput').value.trim();
+            
+            if (!seedConcept) {
+                showMessage("Please enter a Seed Concept/Intention.", 'warning');
+                return;
+            }
+
+            if (currentRitualTier === 0) {
+                 showMessage("Access Denied (Tier 0). Initiate the pass first!", 'error');
+                 return;
+            }
+
+            toggleLoading(true);
+            document.getElementById('outputArea').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${FLASK_SERVER_URL}/api/ritual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: currentUserId,
+                        seedConcept: seedConcept 
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    displayRitualResults(data);
+                    showMessage("Ritual Complete. Archetype synthesized.", 'success');
+                } else {
+                    // Handle Gating or Server Errors
+                    displayRitualError(data.message, data.ritualTier);
+                    showMessage(`Ritual Failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ritual network error:', error);
+                displayRitualError('Network connection error. Check Flask server.', currentRitualTier);
+                showMessage("Network connection error. Check Flask server.", 'error');
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        function displayRitualResults(data) {
+            const resultCard = document.getElementById('resultCard');
+            const cardName = document.getElementById('cardName');
+            const archetypeId = document.getElementById('archetypeId');
+            const cyclesCompleted = document.getElementById('cyclesCompleted');
+            const loreDescription = document.getElementById('loreDescription');
+            const ritualLogs = document.getElementById('ritualLogs');
+
+            // Apply card styling based on cycles completed
+            const isFullCycle = data.cycles_completed === 10;
+            resultCard.classList.remove('tier-0', 'tier-1');
+            resultCard.classList.add(isFullCycle ? 'tier-1' : 'tier-0');
+            cardName.classList.remove('text-green-400', 'text-red-400');
+            cardName.classList.add(isFullCycle ? 'text-green-400' : 'text-red-400');
+            
+            cardName.innerHTML = `${data.card_icon || '⚛️'} ${data.card_name || 'Synthesized Archetype'}`;
+            archetypeId.textContent = `ID: ${data.archetype_id}`;
+            cyclesCompleted.textContent = `Cycles Completed: ${data.cycles_completed} / 10`;
+            loreDescription.textContent = data.lore_description;
+
+            // Display logs
+            ritualLogs.innerHTML = data.ritual_results.map(log => 
+                `[${log.phase}] ${log.seed_output}`
+            ).join('<br>');
+            ritualLogs.scrollTop = ritualLogs.scrollHeight; // Scroll to bottom
+        }
+        
+        function displayRitualError(message, tier) {
+            const resultCard = document.getElementById('resultCard');
+            const cardName = document.getElementById('cardName');
+            const archetypeId = document.getElementById('archetypeId');
+            const cyclesCompleted = document.getElementById('cyclesCompleted');
+            const loreDescription = document.getElementById('loreDescription');
+            const ritualLogs = document.getElementById('ritualLogs');
+
+            resultCard.classList.remove('tier-0', 'tier-1');
+            resultCard.classList.add('tier-0');
+            cardName.classList.remove('text-green-400', 'text-red-400');
+            cardName.classList.add('text-red-400');
+            
+            cardName.innerHTML = `⚠️ Ritual Failed`;
+            archetypeId.textContent = `Tier: ${tier}`;
+            cyclesCompleted.textContent = `Status: Check logs for details.`;
+            loreDescription.textContent = `Error: ${message}`;
+            ritualLogs.innerHTML = `[ERROR] Ritual could not complete due to server or tier restriction.`;
+        }
+
+
+        // --- EVENT LISTENERS / INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check tier on load
+            fetchUserTier();
+            
+            // Re-fetch tier whenever user ID changes
+            document.getElementById('userIdInput').addEventListener('change', fetchUserTier);
+            
+            // Set initial user ID in input field
+            document.getElementById('userIdInput').value = localStorage.getItem('tridevaUserId') || 'web_user_' + Math.floor(Math.random() * 1000);
+            currentUserId = document.getElementById('userIdInput').value;
+            localStorage.setItem('tridevaUserId', currentUserId);
+
+            // Update user ID on input change
+            document.getElementById('userIdInput').addEventListener('input', (e) => {
+                localStorage.setItem('tridevaUserId', e.target.value);
+            });
+            
+            // Initial health check (Optional, but good practice)
+            fetch(`${FLASK_SERVER_URL}/api/health`)
+                .then(res => res.json())
+                .then(data => showMessage(`Server Status: ${data.status} (v${data.engine_version})`, 'info'))
+                .catch(err => showMessage("Backend Server is Offline. Start portal_server.py!", 'error'));
+        });
+        
+    </script>
+</body>
+</html>
