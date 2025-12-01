@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, redirect
 from flask_cors import CORS
 
 from db_connection import (
@@ -13,6 +13,12 @@ CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("portal_server")
+
+# -------------------------------------------------------
+# CONFIG
+# -------------------------------------------------------
+MAILERLITE_URL = "https://YOUR_MAILERLITE_URL_HERE"
+# Replace the above string with your actual MailerLite landing page URL.
 
 # -------------------------------------------------------
 # BEFORE REQUEST — get DB connection
@@ -40,6 +46,19 @@ def teardown_request(exception):
 @app.route("/", methods=["GET"])
 def index():
     return jsonify({"status": "online", "message": "Sovereign Kingdom running"})
+
+# -------------------------------------------------------
+# OFFER ROUTES (Redirection to MailerLite)
+# -------------------------------------------------------
+@app.route("/offer/ai", methods=["GET"])
+def offer_ai():
+    """Redirects to MailerLite opt-in."""
+    return redirect(MAILERLITE_URL, code=302)
+
+@app.route("/offer/saas", methods=["GET"])
+def offer_saas():
+    """Redirects to MailerLite opt-in."""
+    return redirect(MAILERLITE_URL, code=302)
 
 # -------------------------------------------------------
 # HEALTHCHECK
