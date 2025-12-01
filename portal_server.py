@@ -17,7 +17,7 @@ logger = logging.getLogger("portal_server")
 # -------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------
-MAILERLITE_URL = "https://YOUR_MAILERLITE_URL_HERE"
+MAILERLITE_URL = https://preview.mailerlite.io/preview/1954996/emails/172550761621750909
 # Replace the above string with your actual MailerLite landing page URL.
 
 # -------------------------------------------------------
